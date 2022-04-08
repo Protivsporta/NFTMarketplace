@@ -5,7 +5,7 @@ Also you can change auction settings depends on your requirements.
 
 Contract deployed to Rinkeby test network
 
-Contract address: 0x08A5803339E945905abC56FF2b1B8c05f38e0Bf6
+Contract address: 0x96D67D409741023BB152918F0F951249a7DD6626
 
 Available tasks: 
 ```shell
@@ -28,4 +28,4 @@ Available tasks:
 # Etherscan verification
 Link on verified contract:
 
-https://rinkeby.etherscan.io/address/0x08A5803339E945905abC56FF2b1B8c05f38e0Bf6#code
+https://rinkeby.etherscan.io/address/0x96D67D409741023BB152918F0F951249a7DD6626#code
