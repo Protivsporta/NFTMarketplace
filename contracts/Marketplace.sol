@@ -37,8 +37,8 @@ contract Marketplace is AccessControl{
         address lastBidder;
         uint256 numberOfBids;
         bool onSale;
+        bool onAuction;
         address owner;
-        uint256 initialTimestamp;
         uint256 auctionStartTimestamp;
     }
 
@@ -50,7 +50,6 @@ contract Marketplace is AccessControl{
     function createItem(address _to) public {
         itemsList[itemID].owner = _to;
         itemsList[itemID].onSale = false;
-        itemsList[itemID].initialTimestamp = block.timestamp;
         itemID ++;
         nfToken.createCollectible(_to);
     }
@@ -75,14 +74,15 @@ contract Marketplace is AccessControl{
     }
 
     function listItemOnAuction(uint256 _itemID, uint256 _initialPrice) public onlyItemOwner(_itemID) onlyItemExists(_itemID) { 
+        require(itemsList[_itemID].onAuction = false, "This item has already listed");
         itemsList[_itemID].numberOfBids = 0;
-        itemsList[_itemID].onSale = true;
+        itemsList[_itemID].onAuction = true;
         itemsList[_itemID].auctionStartTimestamp = block.timestamp;
         itemsList[_itemID].initialPrice = _initialPrice;
         itemsList[_itemID].lastBid = _initialPrice;
     }
 
-    function makeBid(uint256 _itemID, uint256 _bidAmount) public onlyItemExists(_itemID) onlyOnSale(_itemID) { 
+    function makeBid(uint256 _itemID, uint256 _bidAmount) public onlyItemExists(_itemID) onlyOnAuction(_itemID) { 
         require(_bidAmount > itemsList[_itemID].lastBid, "Your bid is less then last bid");
         require(block.timestamp > itemsList[_itemID].auctionStartTimestamp, "Too early, auction is not started");
         require(block.timestamp < itemsList[_itemID].auctionStartTimestamp + auctionDuration, "Too late, auction ended");
@@ -95,9 +95,9 @@ contract Marketplace is AccessControl{
         itemsList[_itemID].lastBidder = msg.sender;
     }
 
-    function finishAuction(uint256 _itemID) public onlyItemExists(_itemID) onlyOnSale(_itemID) { 
+    function finishAuction(uint256 _itemID) public onlyItemExists(_itemID) onlyOnAuction(_itemID) { 
         require(block.timestamp > itemsList[_itemID].auctionStartTimestamp + auctionDuration);
-        itemsList[_itemID].onSale = false;
+        itemsList[_itemID].onAuction = false;
         if(itemsList[_itemID].numberOfBids >= minimalNumberOfBids) {
             nfToken.transferFrom(itemsList[_itemID].owner, itemsList[_itemID].lastBidder, _itemID);
             emit Sold(itemsList[_itemID].owner, itemsList[_itemID].lastBidder, _itemID);
@@ -126,15 +126,13 @@ contract Marketplace is AccessControl{
         _;
     }
 
-    modifier onlyItemExists(uint256 _itemID) {
-        require(itemsList[_itemID].initialTimestamp > 0, "This item does not exist");
+    modifier onlyOnAuction(uint256 _itemID) {
+        require(itemsList[_itemID].onAuction = true, "This item is not on auction sale now");
         _;
     }
 
-    modifier onlyInAuctionPeriod(uint256 _itemID) {
-        require(block.timestamp < itemsList[_itemID].auctionStartTimestamp + auctionDuration, "Too late, auction ended");
-        _;
-        require(block.timestamp > itemsList[_itemID].auctionStartTimestamp, "Too early, auction is not started");
+    modifier onlyItemExists(uint256 _itemID) {
+        require(itemsList[_itemID].owner != address(0), "This item does not exist");
         _;
     }
 
