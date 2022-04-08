@@ -31,13 +31,16 @@ contract Marketplace is AccessControl{
         _grantRole(ADMIN, msg.sender);
     }
 
+    // enum for item market status
+    enum Status { HOLD, OnSale, OnAuction}
+    Status public status;
+
     struct marketItem {
         uint256 initialPrice;
         uint256 lastBid;
         address lastBidder;
         uint256 numberOfBids;
-        bool onSale;
-        bool onAuction;
+        Status status;
         address owner;
         uint256 auctionStartTimestamp;
     }
@@ -49,19 +52,19 @@ contract Marketplace is AccessControl{
 
     function createItem(address _to) public {
         itemsList[itemID].owner = _to;
-        itemsList[itemID].onSale = false;
+        itemsList[itemID].status = Status.HOLD;
         itemID ++;
         nfToken.createCollectible(_to);
     }
 
     function listItem(uint256 _itemID, uint256 _price) public onlyItemOwner(_itemID) onlyItemExists(_itemID) { 
-        itemsList[_itemID].onSale = true;
+        itemsList[_itemID].status = Status.OnSale;
         itemsList[_itemID].initialPrice = _price;
     }
 
     function buyItem(uint256 _itemID) public onlyOnSale(_itemID) onlyItemExists(_itemID) { 
         require(tradeToken.balanceOf(msg.sender) >= itemsList[_itemID].initialPrice, "Not enough funds to buy");
-        itemsList[_itemID].onSale = false;
+        itemsList[_itemID].status = Status.HOLD;
         tradeToken.transferFrom(msg.sender, itemsList[_itemID].owner, itemsList[_itemID].initialPrice);
         nfToken.transferFrom(itemsList[_itemID].owner, msg.sender, _itemID);
         emit Sold(itemsList[_itemID].owner, msg.sender, _itemID);
@@ -70,13 +73,13 @@ contract Marketplace is AccessControl{
     }
 
     function cancel(uint256 _itemID) public onlyItemOwner(_itemID) onlyOnSale(_itemID) onlyItemExists(_itemID) { 
-        itemsList[_itemID].onSale = false;
+        itemsList[_itemID].status = Status.HOLD;
     }
 
     function listItemOnAuction(uint256 _itemID, uint256 _initialPrice) public onlyItemOwner(_itemID) onlyItemExists(_itemID) { 
-        require(itemsList[_itemID].onAuction = false, "This item has already listed");
+        require(itemsList[_itemID].status == Status.HOLD, "This item has already listed");
         itemsList[_itemID].numberOfBids = 0;
-        itemsList[_itemID].onAuction = true;
+        itemsList[_itemID].status = Status.OnAuction;
         itemsList[_itemID].auctionStartTimestamp = block.timestamp;
         itemsList[_itemID].initialPrice = _initialPrice;
         itemsList[_itemID].lastBid = _initialPrice;
@@ -97,7 +100,7 @@ contract Marketplace is AccessControl{
 
     function finishAuction(uint256 _itemID) public onlyItemExists(_itemID) onlyOnAuction(_itemID) { 
         require(block.timestamp > itemsList[_itemID].auctionStartTimestamp + auctionDuration);
-        itemsList[_itemID].onAuction = false;
+        itemsList[_itemID].status = Status.HOLD;
         if(itemsList[_itemID].numberOfBids >= minimalNumberOfBids) {
             nfToken.transferFrom(itemsList[_itemID].owner, itemsList[_itemID].lastBidder, _itemID);
             emit Sold(itemsList[_itemID].owner, itemsList[_itemID].lastBidder, _itemID);
@@ -122,12 +125,12 @@ contract Marketplace is AccessControl{
     }
 
     modifier onlyOnSale(uint256 _itemID) {
-        require(itemsList[_itemID].onSale = true, "This item is not on sale now");
+        require(itemsList[_itemID].status == Status.OnSale, "This item is not on sale now");
         _;
     }
 
     modifier onlyOnAuction(uint256 _itemID) {
-        require(itemsList[_itemID].onAuction = true, "This item is not on auction sale now");
+        require(itemsList[_itemID].status == Status.OnAuction, "This item is not on auction sale now");
         _;
     }
 
