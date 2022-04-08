@@ -3,6 +3,7 @@
 Marketplace allows you to create new ERC721 tokens (NFT), list them to exchange, cancel the sell, launch auctions, bid amount to auction and finish it.
 Also you can change auction settings depends on your requirements.
 Contract deployed to Rinkeby test network
+
 Contract address: 0x08A5803339E945905abC56FF2b1B8c05f38e0Bf6
 
 Available tasks: 
